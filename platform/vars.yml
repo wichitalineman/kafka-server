@@ -4,6 +4,8 @@ kubeconfig_path: /etc/rancher/rke2/rke2.yaml
 rke2_bin_dir: /var/lib/rancher/rke2/bin
 workdir: /opt/kafka-service
 helm_timeout: 10m
+install_cert_manager: true            # false if cert-manager already runs on the cluster
+cert_manager_chart_version: ""        # empty = latest; pin once tested
 cert_manager_namespace: cert-manager   # namespace where cert-manager runs (ClusterIssuer secrets live here)
 environment_name: dev                       # EDIT: dev | prod (external-dns txt owner)
 

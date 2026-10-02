@@ -8,21 +8,33 @@
   vars:
     _kube_env: {KUBECONFIG: "{{ kubeconfig_path }}", PATH: "{{ rke2_bin_dir }}:/usr/local/bin:/usr/bin:/bin"}
   tasks:
-    - name: Pre-check - cert-manager and MetalLB must already be installed
-      ansible.builtin.shell: |
-        kubectl get ns {{ cert_manager_namespace }} metallb-system >/dev/null &&
-        kubectl get crd certificates.cert-manager.io ipaddresspools.metallb.io >/dev/null
+    - name: Pre-check - MetalLB must already be installed
+      ansible.builtin.command: kubectl get crd ipaddresspools.metallb.io
       environment: "{{ _kube_env }}"
       changed_when: false
-      register: _prereq
-      failed_when: _prereq.rc != 0
-      # stderr names whatever is missing
 
     - name: Add chart repos
       ansible.builtin.command: "helm repo add {{ item.name }} {{ item.url }} --force-update"
       loop:
         - {name: strimzi, url: "https://strimzi.io/charts/"}
+        - {name: jetstack, url: "https://charts.jetstack.io"}
         - {name: external-dns, url: "https://kubernetes-sigs.github.io/external-dns/"}
+      environment: "{{ _kube_env }}"
+      changed_when: false
+
+    - name: Install cert-manager (skip with install_cert_manager=false if you already run one)
+      ansible.builtin.command: >-
+        helm upgrade --install cert-manager jetstack/cert-manager
+        -n {{ cert_manager_namespace }} --create-namespace --set crds.enabled=true
+        {{ '--version ' + cert_manager_chart_version if cert_manager_chart_version }}
+        --wait --timeout {{ helm_timeout }}
+      environment: "{{ _kube_env }}"
+      when: install_cert_manager | bool
+
+    - name: Pre-check - cert-manager must be present
+      ansible.builtin.shell: >-
+        kubectl get ns {{ cert_manager_namespace }} &&
+        kubectl get crd certificates.cert-manager.io clusterissuers.cert-manager.io
       environment: "{{ _kube_env }}"
       changed_when: false
 

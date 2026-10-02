@@ -23,13 +23,11 @@ spec:
         configuration:
           # One LB IP fronts all brokers for bootstrap; one per broker for data.
           bootstrap:
-            host: {{ include "kt.bootstrap" . }}
             annotations: {{- include "kt.dnsAnn" (dict "ctx" . "host" (include "kt.bootstrap" .)) | nindent 14 }}
           brokers:
             {{- range $i := untilStep 1 (int (add1 .Values.kafka.replicas)) 1 }}
             {{- $h := include "kt.broker" (dict "ctx" $ "id" $i) }}
             - broker: {{ $i }}
-              host: {{ $h }}
               advertisedHost: {{ $h }}
               advertisedPort: 9094
               annotations: {{- include "kt.dnsAnn" (dict "ctx" $ "host" $h) | nindent 16 }}

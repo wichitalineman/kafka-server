@@ -1,8 +1,8 @@
 ---
 # Install once per Kubernetes cluster (dev, prod):
-#   ansible-playbook -i <your inventory> -e @vars.yml install-platform.yml
+#   ansible-playbook -i <inventory> platform/install-platform.yml [-e target_hosts=<host-or-group>]
 - name: Kafka service platform (Strimzi + external-dns + ACME issuer + MetalLB pool)
-  hosts: masters[0]
+  hosts: "{{ target_hosts | default('masters[0]') }}"
   become: true
   vars_files: [vars.yml]
   vars:

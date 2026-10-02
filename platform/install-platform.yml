@@ -10,6 +10,7 @@
     install_cert_manager: true
     cert_manager_chart_version: ""
     cert_manager_namespace: cert-manager
+    dns01_recursive_nameservers: []   # e.g. ["10.0.0.2:53"]; needed when nodes can't reach AWS nameservers on :53
     strimzi_chart_version: ""
     externaldns_chart_version: ""
     helm_timeout: 10m
@@ -34,6 +35,7 @@
         helm upgrade --install cert-manager jetstack/cert-manager
         -n {{ cert_manager_namespace }} --create-namespace --set crds.enabled=true
         {{ '--version ' + cert_manager_chart_version if cert_manager_chart_version }}
+        {{ "--set-json 'extraArgs=" + (['--dns01-recursive-nameservers-only', '--dns01-recursive-nameservers=' + (dns01_recursive_nameservers | join(','))] | to_json) + "'" if dns01_recursive_nameservers | length > 0 }}
         --wait --timeout {{ helm_timeout }}
       environment: "{{ _kube_env }}"
       when: install_cert_manager | bool

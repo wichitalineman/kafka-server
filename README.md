@@ -41,6 +41,10 @@ The existing 5-IP MetalLB pools are far too small; `kafka-ip` (192.0.2.1-250) is
 3. Chart passes `helm lint`/`helm template` (both examples) but has **not been applied to a cluster**. Strimzi v1 API + Kafka 4.2.x
    assumed; pin chart and Kafka versions once tested. MetalLB pool is `kafka-ip` (192.0.2.1-250).
 
+4. **DNS-01 self-check**: cert-manager queries the zone's AWS nameservers on :53 before asking Let's Encrypt to validate. If nodes
+   can't reach them ("i/o timeout" in `describe challenge`), set `dns01_recursive_nameservers` in `platform/vars.yml` to a resolver they can use.
+5. Set `domain` in your tenant values file: the chart default is `kafka.example.com`, which Let's Encrypt rejects.
+
 ## UI and rebalancing
 - `ui.enabled: true` deploys AKHQ per tenant (browse topics/messages/groups) behind HAProxy ingress with an ACME cert.
 - Rebalancing is not an AKHQ/Klaw feature. `cruiseControl.enabled` (default on) uses Strimzi's Cruise Control:

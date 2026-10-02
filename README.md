@@ -45,6 +45,8 @@ The existing 5-IP MetalLB pools are far too small; `kafka-ip` (192.0.2.1-250) is
    can't reach them ("i/o timeout" in `describe challenge`), set `dns01_recursive_nameservers` in `platform/vars.yml` to a resolver they can use.
 5. `domain` is required in every tenant values file (no default); use your Route 53 zone.
 
+6. **external-dns >= 0.22** changed its default annotation prefix; the platform values pin `--annotation-prefix=external-dns.alpha.kubernetes.io/` so the chart's annotations work.
+
 ## UI and rebalancing
 - `ui.enabled: true` deploys AKHQ per tenant (browse topics/messages/groups) behind HAProxy ingress with an ACME cert.
 - Rebalancing is not an AKHQ/Klaw feature. `cruiseControl.enabled` (default on) uses Strimzi's Cruise Control:

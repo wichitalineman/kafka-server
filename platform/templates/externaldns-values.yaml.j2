@@ -5,6 +5,7 @@ policy: sync
 registry: txt
 txtOwnerId: kafka-{{ environment_name }}
 extraArgs:
+  - --annotation-prefix=external-dns.alpha.kubernetes.io/   # v0.22+ defaults to external-dns.kubernetes.io/
   - --aws-zone-type=public
   - --zone-id-filter={{ route53_hosted_zone_id }}
 env:

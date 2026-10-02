@@ -66,3 +66,16 @@ All values below are placeholders / examples:
 - `kafka.storage.class` (empty = cluster default StorageClass): or name a class that allows volume expansion.
 - `ui.ingressClass` and `tls.issuerName`: your ingress class and ClusterIssuer names.
 - Kubeconfig/helm paths in `platform/vars.yml` assume RKE2 with a `masters` inventory group.
+
+## Load test (`tools/loadtest/`)
+Producer re-sends a 10KB payload at a set rate; consumer reads it back with a consumer group. Needs the Kafka CLI on PATH, or podman/docker
+(runs `apache/kafka`; override with `KAFKA_IMAGE`). No truststore needed; the public cert is trusted by default.
+```bash
+cd tools/loadtest
+export BOOTSTRAP=<tenant>.<domain>:9094
+./create-topic.sh                        # topics are not auto-created
+THROUGHPUT=100 ./producer.sh             # 100 x 10KB = ~1 MB/s; THROUGHPUT=-1 for unthrottled
+./consumer.sh                            # in another shell; MESSAGES, GROUP tunable
+```
+SCRAM tenants: `SECURITY=scram KAFKA_USER=... KAFKA_PASSWORD=...`. Other knobs: `ACKS`, `LINGER_MS`, `BATCH_SIZE`, `COMPRESSION`, `NUM_RECORDS`,
+`PARTITIONS`, `PAYLOAD_FILE` (single-line file; default is generated 10KB). Defaults live in `env.sh`.

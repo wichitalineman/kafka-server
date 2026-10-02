@@ -4,3 +4,4 @@ platform/vars-*.yml
 *.vault
 *.pem
 *.key
+tools/loadtest/payload-10kb.txt

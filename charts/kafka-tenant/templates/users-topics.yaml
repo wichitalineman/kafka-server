@@ -1,0 +1,32 @@
+{{- range .Values.topics }}
+---
+apiVersion: {{ $.Values.kafka.apiVersion }}
+kind: KafkaTopic
+metadata:
+  name: {{ .name }}
+  labels: {strimzi.io/cluster: {{ include "kt.name" $ }}}
+spec:
+  partitions: {{ .partitions | default 3 }}
+  replicas: {{ .replicas | default 3 }}
+  {{- with .config }}
+  config: {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
+{{- if ne .Values.security.authentication "none" }}
+{{- range .Values.users }}
+---
+apiVersion: {{ $.Values.kafka.apiVersion }}
+kind: KafkaUser
+metadata:
+  name: {{ .name }}
+  labels: {strimzi.io/cluster: {{ include "kt.name" $ }}}
+spec:
+  authentication:
+    type: {{ $.Values.security.authentication }}
+  {{- if ne $.Values.security.authorization "none" }}
+  authorization:
+    type: simple
+    acls: {{- toYaml (.acls | default list) | nindent 6 }}
+  {{- end }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,22 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "kt.name" . }}-listener
+  labels: {{- include "kt.labels" . | nindent 4 }}
+spec:
+  secretName: {{ include "kt.name" . }}-listener-tls
+  duration: {{ .Values.tls.duration }}
+  renewBefore: {{ .Values.tls.renewBefore }}
+  privateKey:
+    algorithm: RSA
+    size: 2048
+    encoding: PKCS8            # Strimzi requires PKCS#8 keys
+    rotationPolicy: Always
+  dnsNames:
+    - {{ include "kt.bootstrap" . }}
+    {{- range $i := untilStep 1 (int (add1 .Values.kafka.replicas)) 1 }}
+    - {{ include "kt.broker" (dict "ctx" $ "id" $i) }}
+    {{- end }}
+  issuerRef:
+    kind: {{ .Values.tls.issuerKind }}
+    name: {{ .Values.tls.issuerName }}

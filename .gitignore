@@ -1,0 +1,6 @@
+.DS_Store
+# Real environment vars / secrets — never commit
+platform/vars-*.yml
+*.vault
+*.pem
+*.key

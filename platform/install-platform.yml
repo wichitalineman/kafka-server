@@ -1,0 +1,59 @@
+---
+# Install once per Kubernetes cluster (dev, prod):
+#   ansible-playbook -i <your inventory> -e @vars.yml install-platform.yml
+- name: Kafka service platform (Strimzi + external-dns + ACME issuer + MetalLB pool)
+  hosts: masters[0]
+  become: true
+  vars_files: [vars.yml]
+  vars:
+    _kube_env: {KUBECONFIG: "{{ kubeconfig_path }}", PATH: "{{ rke2_bin_dir }}:/usr/local/bin:/usr/bin:/bin"}
+  tasks:
+    - name: Add chart repos
+      ansible.builtin.command: "helm repo add {{ item.name }} {{ item.url }} --force-update"
+      loop:
+        - {name: strimzi, url: "https://strimzi.io/charts/"}
+        - {name: external-dns, url: "https://kubernetes-sigs.github.io/external-dns/"}
+      environment: "{{ _kube_env }}"
+      changed_when: false
+
+    - name: Make workdir
+      ansible.builtin.file: {path: "{{ workdir }}/values", state: directory, mode: "0750"}
+
+    - name: Render manifests / values
+      ansible.builtin.template: {src: "{{ item }}.j2", dest: "{{ workdir }}/values/{{ item }}", mode: "0640"}
+      loop: [kafka-pool.yaml, clusterissuer.yaml, externaldns-values.yaml]
+
+    - name: Create namespaces
+      ansible.builtin.shell: |
+        kubectl create ns {{ item }} --dry-run=client -o yaml | kubectl apply -f -
+      loop: [strimzi-system, external-dns]
+      environment: "{{ _kube_env }}"
+      changed_when: false
+
+    - name: Secrets (Route 53 credentials for external-dns and cert-manager)
+      ansible.builtin.shell: |
+        kubectl -n {{ item }} create secret generic aws-route53 \
+          --from-literal=access-key-id='{{ aws_access_key_id }}' \
+          --from-literal=secret-access-key='{{ aws_secret_access_key }}' \
+          --dry-run=client -o yaml | kubectl apply -f -
+      loop: [external-dns, cert-manager]
+      environment: "{{ _kube_env }}"
+      no_log: true
+      changed_when: false
+
+    - name: Strimzi operator (watches ALL namespaces — one namespace per tenant)
+      ansible.builtin.command: >-
+        helm upgrade --install strimzi strimzi/strimzi-kafka-operator {{ '--version ' + strimzi_chart_version if strimzi_chart_version }}
+        -n strimzi-system --set watchAnyNamespace=true --wait --timeout {{ helm_timeout }}
+      environment: "{{ _kube_env }}"
+
+    - name: external-dns (-> Route 53)
+      ansible.builtin.command: >-
+        helm upgrade --install external-dns external-dns/external-dns {{ '--version ' + externaldns_chart_version if externaldns_chart_version }}
+        -n external-dns -f {{ workdir }}/values/externaldns-values.yaml --wait --timeout {{ helm_timeout }}
+      environment: "{{ _kube_env }}"
+
+    - name: MetalLB kafka pool + ACME ClusterIssuer
+      ansible.builtin.command: kubectl apply -f {{ workdir }}/values/{{ item }}
+      loop: [kafka-pool.yaml, clusterissuer.yaml]
+      environment: "{{ _kube_env }}"

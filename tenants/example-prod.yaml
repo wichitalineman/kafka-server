@@ -1,0 +1,12 @@
+tenant: acme-orders
+environment: prod
+kafka:
+  storage: {size: 1Ti}
+  config: {log.retention.hours: 72, message.max.bytes: 5242880}
+security: {authentication: scram-sha-512, authorization: simple}
+users:
+  - name: orders-app
+    acls:
+      - {resource: {type: topic, name: orders, patternType: literal}, operations: [Read, Write, Describe]}
+      - {resource: {type: group, name: orders-, patternType: prefix}, operations: [Read]}
+topics: [{name: orders, partitions: 6}]

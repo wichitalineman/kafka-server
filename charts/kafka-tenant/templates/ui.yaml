@@ -1,0 +1,87 @@
+{{- if .Values.ui.enabled }}
+{{- $scram := eq .Values.security.authentication "scram-sha-512" }}
+{{- if $scram }}
+---
+apiVersion: {{ .Values.kafka.apiVersion }}
+kind: KafkaUser
+metadata:
+  name: {{ .Values.ui.user }}
+  labels: {strimzi.io/cluster: {{ include "kt.name" . }}}
+spec:
+  authentication: {type: scram-sha-512}
+  {{- if ne .Values.security.authorization "none" }}
+  authorization:
+    type: simple
+    acls:
+      - {resource: {type: topic, name: "*", patternType: literal}, operations: [Read, Describe, DescribeConfigs]}
+      - {resource: {type: group, name: "*", patternType: literal}, operations: [Read, Describe]}
+      - {resource: {type: cluster}, operations: [Describe]}
+  {{- end }}
+{{- end }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kt.name" . }}-akhq
+  labels: {{- include "kt.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: {{ include "kt.name" . }}-akhq}}
+  template:
+    metadata: {labels: {app: {{ include "kt.name" . }}-akhq}}
+    spec:
+      containers:
+        - name: akhq
+          image: {{ .Values.ui.image }}
+          ports: [{containerPort: 8080}]
+          env:
+            - name: MICRONAUT_CONFIG_FILES
+              value: /app/application.yml
+            {{- if $scram }}
+            - name: KAFKA_PASSWORD
+              valueFrom: {secretKeyRef: {name: {{ .Values.ui.user }}, key: password}}
+            {{- end }}
+          volumeMounts: [{name: cfg, mountPath: /app/application.yml, subPath: application.yml}]
+          resources: {requests: {cpu: 100m, memory: 512Mi}, limits: {memory: 768Mi}}
+      volumes: [{name: cfg, configMap: {name: {{ include "kt.name" . }}-akhq}}]
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: {{ include "kt.name" . }}-akhq}
+data:
+  application.yml: |
+    akhq:
+      connections:
+        {{ include "kt.name" . }}:
+          properties:
+            bootstrap.servers: {{ include "kt.bootstrap" . }}:9094
+            {{- if $scram }}
+            security.protocol: SASL_SSL
+            sasl.mechanism: SCRAM-SHA-512
+            sasl.jaas.config: org.apache.kafka.common.security.scram.ScramLoginModule required username="{{ .Values.ui.user }}" password="${KAFKA_PASSWORD}";
+            {{- else }}
+            security.protocol: SSL
+            {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: {{ include "kt.name" . }}-akhq}
+spec:
+  selector: {app: {{ include "kt.name" . }}-akhq}
+  ports: [{port: 80, targetPort: 8080}]
+{{- if .Values.ui.host }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "kt.name" . }}-akhq
+  annotations:
+    cert-manager.io/cluster-issuer: {{ .Values.tls.issuerName }}
+spec:
+  ingressClassName: {{ .Values.ui.ingressClass }}
+  tls: [{hosts: [{{ .Values.ui.host }}], secretName: {{ include "kt.name" . }}-akhq-tls}]
+  rules:
+    - host: {{ .Values.ui.host }}
+      http: {paths: [{path: /, pathType: Prefix, backend: {service: {name: {{ include "kt.name" . }}-akhq, port: {number: 80}}}}]}
+{{- end }}
+{{- end }}

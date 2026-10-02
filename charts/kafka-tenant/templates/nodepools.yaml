@@ -1,0 +1,81 @@
+{{- $dedicated := .Values.controllers.dedicated }}
+apiVersion: {{ .Values.kafka.apiVersion }}
+kind: KafkaNodePool
+metadata:
+  name: brokers
+  labels:
+    strimzi.io/cluster: {{ include "kt.name" . }}
+    {{- include "kt.labels" . | nindent 4 }}
+  annotations:
+    strimzi.io/next-node-ids: "[1-99]"     # deterministic ids -> matches listener broker ids
+spec:
+  replicas: {{ .Values.kafka.replicas }}
+  roles:
+    - broker
+    {{- if not $dedicated }}
+    - controller
+    {{- end }}
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
+        type: persistent-claim
+        class: {{ .Values.kafka.storage.class }}
+        size: {{ .Values.kafka.storage.size }}
+        deleteClaim: {{ .Values.kafka.storage.deleteClaim }}
+        kraftMetadata: shared
+  resources: {{- toYaml .Values.kafka.resources | nindent 4 }}
+  jvmOptions:
+    -Xmx: {{ .Values.kafka.jvmXmx }}
+    -Xms: {{ .Values.kafka.jvmXms }}
+  {{- if ne .Values.kafka.antiAffinity "none" }}
+  template:
+    pod:
+      affinity:
+        podAntiAffinity:
+          {{- if eq .Values.kafka.antiAffinity "required" }}
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  strimzi.io/cluster: {{ include "kt.name" . }}
+                  strimzi.io/broker-role: "true"
+          {{- else }}
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels:
+                    strimzi.io/cluster: {{ include "kt.name" . }}
+                    strimzi.io/broker-role: "true"
+          {{- end }}
+  {{- end }}
+{{- if $dedicated }}
+---
+apiVersion: {{ .Values.kafka.apiVersion }}
+kind: KafkaNodePool
+metadata:
+  name: controllers
+  labels:
+    strimzi.io/cluster: {{ include "kt.name" . }}
+    {{- include "kt.labels" . | nindent 4 }}
+  annotations:
+    strimzi.io/next-node-ids: "[100-199]"
+spec:
+  replicas: {{ .Values.controllers.replicas }}
+  roles:
+    - controller
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
+        type: persistent-claim
+        class: {{ include "kt.controllerClass" . }}
+        size: {{ .Values.controllers.storage.size }}
+        deleteClaim: {{ .Values.kafka.storage.deleteClaim }}
+        kraftMetadata: shared
+  resources: {{- toYaml .Values.controllers.resources | nindent 4 }}
+  jvmOptions:
+    -Xmx: {{ .Values.controllers.jvmXmx }}
+{{- end }}

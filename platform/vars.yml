@@ -1,0 +1,26 @@
+---
+# Per-environment platform vars (copy per env: vars-dev.yml / vars-prod.yml, vault the secrets)
+kubeconfig_path: /etc/rancher/rke2/rke2.yaml
+rke2_bin_dir: /var/lib/rancher/rke2/bin
+workdir: /opt/kafka-service
+helm_timeout: 10m
+environment_name: dev                       # EDIT: dev | prod (external-dns txt owner)
+
+# Chart versions from the public repos (empty = latest; pin once tested)
+strimzi_chart_version: ""
+externaldns_chart_version: ""
+
+# MetalLB pool dedicated to Kafka: 4 IPs per tenant (bootstrap + 3 brokers)
+# 12 tenants => 48 IPs; leave headroom for growth/extra brokers.
+metallb_kafka_pool: "192.0.2.1-192.0.2.250"   # pool name: kafka-ip
+
+# DNS: AWS Route 53 public hosted zone for the domain below
+dns_zone: kafka.example.com
+route53_hosted_zone_id: "Z0000000000000000000"        # EDIT
+aws_region: us-east-1                                  # Route 53 is global; any valid region works
+aws_access_key_id: "REPLACE"                           # ansible-vault these two
+aws_secret_access_key: "REPLACE"
+
+# ACME (Let's Encrypt) via DNS-01 using the same Route 53 zone
+acme_email: "you@example.com"                          # EDIT
+acme_server: https://acme-v02.api.letsencrypt.org/directory

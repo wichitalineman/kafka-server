@@ -1,0 +1,17 @@
+Kafka cluster "{{ include "kt.name" . }}" ({{ .Values.environment }}) — customer handover
+==========================================================================
+Bootstrap (load-balanced): {{ include "kt.bootstrap" . }}:9094
+Brokers (advertised):      {{ include "kt.name" . }}-bk1..bk{{ .Values.kafka.replicas }}.{{ .Values.domain }}:9094
+Security:                  TLS ({{ .Values.tls.issuerName }} cert, no truststore needed — JVM/OS defaults trust it)
+Authentication:            {{ .Values.security.authentication }}
+{{- if eq .Values.security.authentication "scram-sha-512" }}
+Credentials:               kubectl -n {{ .Release.Namespace }} get secret <user> -o jsonpath='{.data.password}' | base64 -d
+Client props:              security.protocol=SASL_SSL
+                           sasl.mechanism=SCRAM-SHA-512
+                           sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="<user>" password="<pw>";
+{{- else }}
+Client props:              security.protocol=SSL
+{{- end }}
+                           bootstrap.servers={{ include "kt.bootstrap" . }}:9094
+
+Check:  kcat -b {{ include "kt.bootstrap" . }}:9094 -L

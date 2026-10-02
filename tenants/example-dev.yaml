@@ -1,0 +1,9 @@
+tenant: acme-orders-dev
+environment: dev
+kafka:
+  jvmXmx: 2g
+  jvmXms: 2g
+  resources: {requests: {cpu: "1", memory: 4Gi}, limits: {cpu: "2", memory: 4Gi}}
+  storage: {size: 100Gi}
+  antiAffinity: preferred
+controllers: {dedicated: false}    # combined roles: 3 pods instead of 6

@@ -1,0 +1,16 @@
+provider: {name: aws}
+sources: [service]
+domainFilter: ["{{ dns_zone }}"]
+policy: sync
+registry: txt
+txtOwnerId: kafka-{{ environment_name }}
+extraArgs:
+  - --aws-zone-type=public
+  - --zone-id-filter={{ route53_hosted_zone_id }}
+env:
+  - name: AWS_DEFAULT_REGION
+    value: {{ aws_region }}
+  - name: AWS_ACCESS_KEY_ID
+    valueFrom: {secretKeyRef: {name: aws-route53, key: access-key-id}}
+  - name: AWS_SECRET_ACCESS_KEY
+    valueFrom: {secretKeyRef: {name: aws-route53, key: secret-access-key}}

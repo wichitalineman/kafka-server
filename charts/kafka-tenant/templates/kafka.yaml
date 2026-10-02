@@ -1,0 +1,57 @@
+{{- $auth := .Values.security.authentication -}}
+apiVersion: {{ .Values.kafka.apiVersion }}
+kind: Kafka
+metadata:
+  name: {{ include "kt.name" . }}
+  labels: {{- include "kt.labels" . | nindent 4 }}
+  annotations:
+    strimzi.io/node-pools: enabled
+    strimzi.io/kraft: enabled
+spec:
+  kafka:
+    version: {{ .Values.kafka.version | quote }}
+    metadataVersion: {{ .Values.kafka.metadataVersion | quote }}
+    listeners:
+      - name: external
+        port: 9094
+        type: loadbalancer
+        tls: true
+        {{- if ne $auth "none" }}
+        authentication:
+          type: {{ $auth }}
+        {{- end }}
+        configuration:
+          # One LB IP fronts all brokers for bootstrap; one per broker for data.
+          bootstrap:
+            host: {{ include "kt.bootstrap" . }}
+            annotations: {{- include "kt.dnsAnn" (dict "ctx" . "host" (include "kt.bootstrap" .)) | nindent 14 }}
+          brokers:
+            {{- range $i := untilStep 1 (int (add1 .Values.kafka.replicas)) 1 }}
+            {{- $h := include "kt.broker" (dict "ctx" $ "id" $i) }}
+            - broker: {{ $i }}
+              host: {{ $h }}
+              advertisedHost: {{ $h }}
+              advertisedPort: 9094
+              annotations: {{- include "kt.dnsAnn" (dict "ctx" $ "host" $h) | nindent 16 }}
+            {{- end }}
+          externalTrafficPolicy: {{ .Values.network.externalTrafficPolicy }}
+          brokerCertChainAndKey:
+            secretName: {{ include "kt.name" . }}-listener-tls
+            certificate: tls.crt
+            key: tls.key
+    {{- if ne .Values.security.authorization "none" }}
+    authorization:
+      type: {{ .Values.security.authorization }}
+      superUsers: {{- toYaml .Values.security.superUsers | nindent 8 }}
+    {{- end }}
+    config: {{- merge (deepCopy .Values.kafka.config) (deepCopy .Values.kafka.defaultConfig) | toYaml | nindent 6 }}
+  {{- if .Values.cruiseControl.enabled }}
+  cruiseControl: {}
+  {{- end }}
+  entityOperator:
+    {{- if .Values.entityOperator.topicOperator }}
+    topicOperator: {}
+    {{- end }}
+    {{- if .Values.entityOperator.userOperator }}
+    userOperator: {}
+    {{- end }}

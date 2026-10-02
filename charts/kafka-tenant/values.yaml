@@ -1,0 +1,81 @@
+# ---- Defaults for every tenant. Override per customer in tenants/<name>.yaml.
+tenant: ""                       # REQUIRED: short DNS-safe name, e.g. "acme-orders"
+environment: dev                 # dev | prod (informational; used in labels)
+domain: kafka.example.com  # tenant hostnames are <tenant>.<domain>, <tenant>-<n>.<domain>
+
+kafka:
+  version: "4.2.1"
+  metadataVersion: "4.2-IV1"     # must match the Kafka version
+  apiVersion: kafka.strimzi.io/v1
+  replicas: 3                    # brokers
+  # Broker server.properties. Anything here overrides the defaults below.
+  config: {}
+  defaultConfig:
+    default.replication.factor: 3
+    min.insync.replicas: 2
+    offsets.topic.replication.factor: 3
+    transaction.state.log.replication.factor: 3
+    transaction.state.log.min.isr: 2
+    auto.create.topics.enable: false
+    num.partitions: 3
+    log.retention.hours: 168
+    log.segment.bytes: 1073741824
+  jvmXmx: 4g
+  jvmXms: 4g
+  resources:
+    requests: {cpu: "2", memory: 8Gi}
+    limits:   {cpu: "4", memory: 8Gi}
+  storage:
+    class: csi-nfs       # CSI class (must allowVolumeExpansion)
+    size: 500Gi                  # raise + helm upgrade to grow; Strimzi expands the PVCs
+    deleteClaim: false           # keep data if the tenant is uninstalled
+  # Spread brokers over different nodes (hard) — needs >= replicas workers.
+  antiAffinity: required         # required | preferred | none
+
+controllers:
+  dedicated: true                # false = combined broker+controller pods (dev only)
+  replicas: 3
+  resources:
+    requests: {cpu: 500m, memory: 2Gi}
+    limits:   {cpu: "1",  memory: 2Gi}
+  jvmXmx: 1g
+  storage: {class: "", size: 20Gi}   # "" = use kafka.storage.class
+
+network:
+  metallbPool: kafka-ip           # MetalLB pool holding bootstrap+broker IPs
+  dnsTtl: 60
+  externalTrafficPolicy: Local
+
+tls:
+  # cert-manager issuer whose certs clients already trust (public ACME).
+  issuerKind: ClusterIssuer
+  issuerName: kafka-acme
+  duration: 2160h                # 90d (Let's Encrypt max)
+  renewBefore: 720h              # renew 30d before expiry; Strimzi rolls brokers on change
+
+security:
+  # TLS encryption is always on. Add auth per tenant:
+  #   none          -> encrypted only (bare minimum)
+  #   scram-sha-512 -> username/password (users below), works with plain OS trust store
+  authentication: none
+  authorization: none            # none | simple (ACLs; needs authentication != none)
+  superUsers: []
+
+users: []      # [{name: app1, acls: [{resource: {type: topic, name: orders, patternType: literal}, operations: [Read, Write, Describe]}]}]
+topics: []     # [{name: orders, partitions: 6, replicas: 3, config: {retention.ms: 604800000}}]
+
+entityOperator:
+  topicOperator: true
+  userOperator: true
+
+# Partition rebalancing (add/remove brokers, uneven disks): create a KafkaRebalance CR, review, approve.
+cruiseControl:
+  enabled: true
+
+# Optional per-tenant web UI (AKHQ): browse topics/messages/consumer groups, manage ACL-free basics.
+ui:
+  enabled: false
+  image: docker.io/tchiotludo/akhq:0.25.1
+  host: ""                                     # e.g. acme-orders-ui.kafka.example.com
+  ingressClass: haproxy-ingress
+  user: akhq                                   # SCRAM user created automatically when auth is scram

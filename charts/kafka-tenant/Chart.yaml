@@ -1,0 +1,6 @@
+apiVersion: v2
+name: kafka-tenant
+description: One Strimzi-managed Kafka cluster (KRaft) for one customer/team, with LB endpoints, DNS and auto-rotated public TLS
+type: application
+version: 0.1.0
+appVersion: "4.2.1"

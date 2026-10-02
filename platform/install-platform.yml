@@ -6,6 +6,13 @@
   become: true
   vars_files: [vars.yml]
   vars:
+    # Defaults so an older/local vars.yml still works; vars.yml values override these.
+    install_cert_manager: true
+    cert_manager_chart_version: ""
+    cert_manager_namespace: cert-manager
+    strimzi_chart_version: ""
+    externaldns_chart_version: ""
+    helm_timeout: 10m
     _kube_env: {KUBECONFIG: "{{ kubeconfig_path }}", PATH: "{{ rke2_bin_dir }}:/usr/local/bin:/usr/bin:/bin"}
   tasks:
     - name: Pre-check - MetalLB must already be installed

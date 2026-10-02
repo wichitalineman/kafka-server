@@ -8,6 +8,16 @@
   vars:
     _kube_env: {KUBECONFIG: "{{ kubeconfig_path }}", PATH: "{{ rke2_bin_dir }}:/usr/local/bin:/usr/bin:/bin"}
   tasks:
+    - name: Pre-check - cert-manager and MetalLB must already be installed
+      ansible.builtin.shell: |
+        kubectl get ns {{ cert_manager_namespace }} metallb-system >/dev/null &&
+        kubectl get crd certificates.cert-manager.io ipaddresspools.metallb.io >/dev/null
+      environment: "{{ _kube_env }}"
+      changed_when: false
+      register: _prereq
+      failed_when: _prereq.rc != 0
+      # stderr names whatever is missing
+
     - name: Add chart repos
       ansible.builtin.command: "helm repo add {{ item.name }} {{ item.url }} --force-update"
       loop:
@@ -36,7 +46,7 @@
           --from-literal=access-key-id='{{ aws_access_key_id }}' \
           --from-literal=secret-access-key='{{ aws_secret_access_key }}' \
           --dry-run=client -o yaml | kubectl apply -f -
-      loop: [external-dns, cert-manager]
+      loop: [external-dns, "{{ cert_manager_namespace }}"]
       environment: "{{ _kube_env }}"
       no_log: true
       changed_when: false

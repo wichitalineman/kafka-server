@@ -1,6 +1,6 @@
 provider: {name: aws}
 sources: [service]
-domainFilter: ["{{ dns_zone }}"]
+domainFilters: ["{{ dns_zone }}"]
 policy: sync
 registry: txt
 txtOwnerId: kafka-{{ environment_name }}

@@ -1,4 +1,5 @@
 tenant: acme-orders
+domain: kafka.example.com   # CHANGE to your Route 53 zone
 environment: prod
 kafka:
   storage: {size: 1Ti}

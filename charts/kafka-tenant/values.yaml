@@ -1,7 +1,7 @@
 # ---- Defaults for every tenant. Override per customer in tenants/<name>.yaml.
 tenant: ""                       # REQUIRED: short DNS-safe name, e.g. "acme-orders"
 environment: dev                 # dev | prod (informational; used in labels)
-domain: kafka.example.com  # tenant hostnames are <tenant>.<domain>, <tenant>-<n>.<domain>
+domain: ""                     # REQUIRED: your Route 53 zone, e.g. kafka.mycompany.com; hostnames are <tenant>.<domain>, <tenant>-bk<n>.<domain>
 
 kafka:
   version: "4.2.1"

@@ -26,7 +26,7 @@ kafka:
     requests: {cpu: "2", memory: 8Gi}
     limits:   {cpu: "4", memory: 8Gi}
   storage:
-    class: csi-nfs       # CSI class (must allowVolumeExpansion)
+    class: ""           # "" = cluster default StorageClass; else a class name (must allowVolumeExpansion)
     size: 500Gi                  # raise + helm upgrade to grow; Strimzi expands the PVCs
     deleteClaim: false           # keep data if the tenant is uninstalled
   # Spread brokers over different nodes (hard) — needs >= replicas workers.

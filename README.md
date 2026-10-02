@@ -61,6 +61,6 @@ All values below are placeholders / examples:
 - `kafka.example.com` (README, `platform/vars.yml` `dns_zone`, `charts/kafka-tenant/values.yaml` `domain`): your Route 53 public zone.
 - `192.0.2.1-192.0.2.250` (`platform/vars.yml` `metallb_kafka_pool`): a free range on your LAN for the MetalLB `kafka-ip` pool.
 - `route53_hosted_zone_id`, `aws_access_key_id`, `aws_secret_access_key`, `acme_email` (`platform/vars.yml`): vault the keys; keep real values in an ignored `platform/vars-<env>.yml`.
-- `storage.class: csi-nfs` -> `kafka.storage.class` in `charts/kafka-tenant/values.yaml`: your CSI StorageClass (must allow volume expansion).
+- `kafka.storage.class` (empty = cluster default StorageClass): or name a class that allows volume expansion.
 - `ui.ingressClass` and `tls.issuerName`: your ingress class and ClusterIssuer names.
 - Kubeconfig/helm paths in `platform/vars.yml` assume RKE2 with a `masters` inventory group.

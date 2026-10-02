@@ -20,7 +20,9 @@ spec:
     volumes:
       - id: 0
         type: persistent-claim
-        class: {{ .Values.kafka.storage.class }}
+        {{- with .Values.kafka.storage.class }}
+        class: {{ . }}
+        {{- end }}
         size: {{ .Values.kafka.storage.size }}
         deleteClaim: {{ .Values.kafka.storage.deleteClaim }}
         kraftMetadata: shared
@@ -71,7 +73,9 @@ spec:
     volumes:
       - id: 0
         type: persistent-claim
-        class: {{ include "kt.controllerClass" . }}
+        {{- with (include "kt.controllerClass" .) }}
+        class: {{ . }}
+        {{- end }}
         size: {{ .Values.controllers.storage.size }}
         deleteClaim: {{ .Values.kafka.storage.deleteClaim }}
         kraftMetadata: shared

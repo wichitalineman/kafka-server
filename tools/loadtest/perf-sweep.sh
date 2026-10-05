@@ -6,7 +6,7 @@ set -uo pipefail
 . "$(dirname "$0")/env.sh"; write_client_props
 [ -f "$PAYLOAD_FILE" ] || "$HERE/make-payload.sh" >/dev/null
 PRODUCERS="${PRODUCERS:-3}"
-RECORDS="${RECORDS:-300000}"                 # per producer per scenario (10KB each: 300000 = ~3 GB)
+RECORDS="${RECORDS:-100000}"                 # per producer per scenario (10KB each: 100000 = ~1 GB)
 SCENARIOS=(
   "all  none 65536   5"
   "all  none 524288  50"
@@ -20,10 +20,12 @@ for sc in "${SCENARIOS[@]}"; do
   printf "%-6s %-5s %-8s %-6s |\n" "$a" "$c" "$b" "$l"
   tmp="$(mktemp -d)"
   for i in $(seq 1 "$PRODUCERS"); do
+    # producer 1 streams live progress to the terminal; every producer's final summary line is kept
     ( kafka kafka-producer-perf-test.sh --topic "$TOPIC" --num-records "$RECORDS" --throughput -1 \
         --payload-file "$(payload_path)" \
         --producer-props bootstrap.servers="$BOOTSTRAP" acks="$a" compression.type="$c" batch.size="$b" linger.ms="$l" \
-        --producer.config "$(props_path)" 2>&1 | tail -1 > "$tmp/$i" ) &
+        --producer.config "$(props_path)" 2>&1 \
+      | { if [ "$i" = 1 ]; then tee /dev/stderr; else cat; fi; } | tail -1 > "$tmp/$i" ) &
   done
   wait
   cat "$tmp"/* | sed 's/^/        /'

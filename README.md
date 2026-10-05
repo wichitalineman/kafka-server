@@ -87,7 +87,7 @@ SCRAM tenants: `SECURITY=scram KAFKA_USER=... KAFKA_PASSWORD=...`. Other knobs: 
 kubectl top nodes; kubectl describe nodes | grep -A6 "Allocated resources"   # need 3 nodes with ~5 CPU / 18Gi free each
 helm upgrade --install perf charts/kafka-tenant -n kafka-perf --create-namespace -f tenants/perf.yaml
 cd tools/loadtest && export BOOTSTRAP=perf.<domain>:9094
-TOPIC=perf-12 PRODUCERS=3 RECORDS=300000 ./perf-sweep.sh      # unthrottled, 5 acks/compression/batch scenarios
+TOPIC=perf-12 PRODUCERS=3 RECORDS=100000 ./perf-sweep.sh      # unthrottled, 5 acks/compression/batch scenarios
 TOPIC=perf-12 MESSAGES=900000 GROUP=perf-read ./consumer.sh
 ```
 Watch: broker CPU (`kubectl -n kafka-perf top pods`), storage latency, and the client box NIC/CPU (it can be the bottleneck).

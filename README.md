@@ -8,7 +8,8 @@ an ACME ClusterIssuer (DNS-01 via Route 53) and a dedicated MetalLB `kafka-ip` p
 
 ## 2. New customer (minutes)
 ```bash
-cp tenants/example-prod.yaml tenants/<customer>.yaml     # edit tenant name, size, auth
+cp tenants/example-prod.yaml tenants/<customer>.yaml     # edit tenant name, domain, size (TLS only, no auth)
+                                                         # tenants/example-scram.yaml = SCRAM login + ACLs variant
 helm upgrade --install <tenant> charts/kafka-tenant -n kafka-<tenant> --create-namespace -f tenants/<customer>.yaml
 helm get notes <tenant> -n kafka-<tenant>                # paste to customer: endpoint + client props
 ```

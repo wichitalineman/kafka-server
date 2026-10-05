@@ -2,12 +2,8 @@ tenant: acme-orders
 domain: kafka.example.com   # CHANGE to your Route 53 zone
 environment: prod
 kafka:
-  storage: {size: 1Ti}
+  storage: {size: 1Ti}       # class: <name> to pick a StorageClass (default: cluster default)
   config: {log.retention.hours: 72, message.max.bytes: 5242880}
-security: {authentication: scram-sha-512, authorization: simple}
-users:
-  - name: orders-app
-    acls:
-      - {resource: {type: topic, name: orders, patternType: literal}, operations: [Read, Write, Describe]}
-      - {resource: {type: group, name: orders-, patternType: prefix}, operations: [Read]}
+# Default security: TLS only (public cert, no truststore, no login). See example-scram.yaml for SCRAM + ACLs.
+security: {authentication: none, authorization: none}
 topics: [{name: orders, partitions: 6}]

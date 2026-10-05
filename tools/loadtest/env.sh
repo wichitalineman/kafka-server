@@ -7,7 +7,7 @@ KAFKA_PASSWORD="${KAFKA_PASSWORD:-}"                     # scram only
 
 # Producer tuning
 THROUGHPUT="${THROUGHPUT:-100}"        # messages/sec; -1 = unthrottled. 100 x 10KB ~ 1 MB/s
-NUM_RECORDS="${NUM_RECORDS:-9223372036854775807}"  # default: effectively forever (Ctrl-C to stop)
+NUM_RECORDS="${NUM_RECORDS:-1000000000}"   # ~forever at typical rates (115 days at 100/s); Ctrl-C to stop
 ACKS="${ACKS:-all}"
 LINGER_MS="${LINGER_MS:-5}"
 BATCH_SIZE="${BATCH_SIZE:-65536}"

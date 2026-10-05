@@ -78,4 +78,4 @@ THROUGHPUT=100 ./producer.sh             # 100 x 10KB = ~1 MB/s; THROUGHPUT=-1 f
 ./consumer.sh                            # in another shell; MESSAGES, GROUP tunable
 ```
 SCRAM tenants: `SECURITY=scram KAFKA_USER=... KAFKA_PASSWORD=...`. Other knobs: `ACKS`, `LINGER_MS`, `BATCH_SIZE`, `COMPRESSION`, `NUM_RECORDS`,
-`PARTITIONS`, `PAYLOAD_FILE` (single-line file; default is generated 10KB). Defaults live in `env.sh`.
+`PARTITIONS`, `PAYLOAD_FILE` (single-line file; default is generated 10KB). The producer runs ~forever by default; NUM_RECORDS must stay under ~2 billion. Defaults live in `env.sh`.
